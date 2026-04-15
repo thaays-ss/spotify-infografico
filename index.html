@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Corrida pelo Algoritmo — Spotify</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --preto: #0e0e0e;
+    --preto2: #191414;
+    --verde: #1DB954;
+    --verde2: #17a349;
+    --branco: #f5f5f0;
+    --cinza: #888;
+    --lilas: #9B59B6;
+    --laranja: #E67E22;
+    --card: #1a1a1a;
+    --linha: #2a2a2a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--preto);
+    color: var(--branco);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* PROGRESS BAR */
+  #progress {
+    position: fixed; top: 0; left: 0; height: 3px;
+    background: var(--verde); z-index: 999;
+    width: 0%; transition: width 0.1s;
+  }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center;
+    padding: 4rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 20% 50%, rgba(29,185,84,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(155,89,182,0.04) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero-tag {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.25em;
+    color: var(--verde);
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    font-weight: 500;
+  }
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4rem, 12vw, 10rem);
+    line-height: 0.92;
+    letter-spacing: 0.02em;
+    color: var(--branco);
+    margin-bottom: 1.5rem;
+  }
+  .hero-title span { color: var(--verde); }
+  .hero-subtitle {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+    color: var(--cinza);
+    font-style: italic;
+    max-width: 600px;
+    margin-bottom: 3rem;
+  }
+  .hero-scroll {
+    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+    font-size: 0.75rem; letter-spacing: 0.15em; color: var(--cinza);
+    text-transform: uppercase; font-weight: 500;
+    animation: bounce 2s infinite;
+  }
+  .hero-scroll::after {
+    content: '↓';
+    font-size: 1.2rem;
+    color: var(--verde);
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+  }
+  .hero-line {
+    width: 1px; height: 80px;
+    background: linear-gradient(to bottom, transparent, var(--verde), transparent);
+    margin: 2rem auto;
+  }
+
+  /* SECTIONS */
+  section {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 5rem 2rem;
+  }
+  section.wide { max-width: 1000px; }
+  section.full { max-width: 100%; padding: 5rem 0; }
+
+  /* CHAPTER HEADER */
+  .chapter {
+    display: flex; align-items: center; gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .chapter-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    color: var(--verde);
+    background: rgba(29,185,84,0.1);
+    border: 1px solid rgba(29,185,84,0.2);
+    padding: 0.2rem 0.6rem;
+    letter-spacing: 0.1em;
+  }
+  .chapter-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cinza);
+    font-weight: 500;
+  }
+
+  /* DISPLAY HEADINGS */
+  .display {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 7vw, 5.5rem);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    margin-bottom: 1.5rem;
+  }
+  .display span { color: var(--verde); }
+  .display .alt { color: var(--lilas); }
+  .display .warn { color: var(--laranja); }
+
+  /* BODY TEXT */
+  .lead {
+    font-size: 1.15rem;
+    color: #ccc;
+    line-height: 1.8;
+    margin-bottom: 1.5rem;
+    font-weight: 300;
+  }
+  .lead strong {
+    color: var(--branco);
+    font-weight: 500;
+  }
+  .lead em {
+    color: var(--verde);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  /* PULL QUOTES */
+  .pullquote {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    line-height: 1.4;
+    color: var(--branco);
+    font-style: italic;
+    border-left: 3px solid var(--verde);
+    padding: 1.5rem 0 1.5rem 2rem;
+    margin: 3rem 0;
+  }
+  .pullquote cite {
+    display: block;
+    font-style: normal;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    color: var(--cinza);
+    margin-top: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* BIG NUMBERS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin: 3rem 0;
+  }
+  .kpi {
+    background: var(--card);
+    border: 1px solid var(--linha);
+    padding: 1.5rem 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi.verde::before { background: var(--verde); }
+  .kpi.lilas::before { background: var(--lilas); }
+  .kpi.laranja::before { background: var(--laranja); }
+  .kpi-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.8rem;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+  .kpi.verde .kpi-value { color: var(--verde); }
+  .kpi.lilas .kpi-value { color: var(--lilas); }
+  .kpi.laranja .kpi-value { color: var(--laranja); }
+  .kpi-label {
+    font-size: 0.75rem;
+    color: var(--cinza);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+  .kpi-sub {
+    font-size: 0.72rem;
+    color: #555;
+    margin-top: 0.3rem;
+  }
+
+  /* CALLOUT ANNOTATION */
+  .callout {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(29,185,84,0.08);
+    border: 1px solid rgba(29,185,84,0.25);
+    padding: 0.5rem 1rem;
+    font-size: 0.82rem;
+    color: var(--verde);
+    font-weight: 500;
+    margin: 1.5rem 0;
+  }
+  .callout::before { content: '→'; }
+  .callout.warn {
+    background: rgba(230,126,34,0.08);
+    border-color: rgba(230,126,34,0.25);
+    color: var(--laranja);
+  }
+  .callout.lilas {
+    background: rgba(155,89,182,0.08);
+    border-color: rgba(155,89,182,0.25);
+    color: var(--lilas);
+  }
+
+  /* CHART CONTAINERS */
+  .chart-wrap {
+    background: var(--card);
+    border: 1px solid var(--linha);
+    padding: 2rem;
+    margin: 2.5rem 0;
+    position: relative;
+  }
+  .chart-title {
+    font-size: 0.72rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--cinza);
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+  }
+  .chart-source {
+    font-size: 0.68rem;
+    color: #444;
+    margin-top: 1rem;
+    text-align: right;
+  }
+
+  /* DIVIDER */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--linha);
+    margin: 0;
+  }
+  .divider-accent {
+    width: 60px;
+    height: 3px;
+    background: var(--verde);
+    margin: 3rem auto;
+  }
+
+  /* HIGHLIGHT BOX */
+  .highlight {
+    background: rgba(29,185,84,0.04);
+    border-left: 3px solid var(--verde);
+    padding: 1.5rem 2rem;
+    margin: 2rem 0;
+  }
+  .highlight.warn {
+    background: rgba(230,126,34,0.04);
+    border-left-color: var(--laranja);
+  }
+  .highlight p { font-size: 1rem; color: #ccc; line-height: 1.7; }
+  .highlight strong { color: var(--branco); font-weight: 500; }
+
+  /* INTRO NUMBERS (arena) */
+  .arena-stat {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(5rem, 15vw, 12rem);
+    line-height: 0.85;
+    letter-spacing: -0.01em;
+    text-align: center;
+    color: var(--verde);
+    opacity: 0.15;
+    position: relative;
+  }
+
+  /* RULE CARDS */
+  .rule-card {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--linha);
+  }
+  .rule-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    line-height: 1;
+    color: var(--verde);
+    opacity: 0.3;
+    min-width: 3rem;
+    text-align: right;
+  }
+  .rule-content h3 {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--branco);
+    margin-bottom: 0.3rem;
+  }
+  .rule-content p {
+    font-size: 0.9rem;
+    color: var(--cinza);
+    line-height: 1.6;
+  }
+
+  /* CONCLUSION CARDS */
+  .conc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--linha);
+    margin: 3rem 0;
+  }
+  .conc-card {
+    background: var(--card);
+    padding: 2rem;
+  }
+  .conc-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+  }
+  .conc-tag {
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--verde);
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+  }
+  .conc-card.lilas .conc-tag { color: var(--lilas); }
+  .conc-card.laranja .conc-tag { color: var(--laranja); }
+  .conc-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--branco);
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+  .conc-body {
+    font-size: 0.85rem;
+    color: var(--cinza);
+    line-height: 1.6;
+  }
+
+  /* FOOTER */
+  footer {
+    text-align: center;
+    padding: 5rem 2rem 3rem;
+    border-top: 1px solid var(--linha);
+    font-size: 0.75rem;
+    color: #444;
+    letter-spacing: 0.05em;
+    line-height: 1.8;
+  }
+  footer strong { color: var(--cinza); font-weight: 500; }
+
+  /* LEGEND */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.75rem;
+    color: var(--cinza);
+  }
+  .legend span {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* SCATTER CUSTOM */
+  .scatter-wrap { position: relative; }
+
+
+  /* ILLUSTRATIONS */
+  .illus { display: flex; justify-content: center; margin: 2.5rem 0; }
+  .illus svg { max-width: 100%; }
+
+  /* WAVEFORM ANIMATION */
+  @keyframes wave {
+    0%,100% { transform: scaleY(1); }
+    50%      { transform: scaleY(0.2); }
+  }
+  .wbar { transform-origin: bottom; animation: wave 1.4s ease-in-out infinite; }
+  .wbar:nth-child(1)  { animation-delay: 0s; }
+  .wbar:nth-child(2)  { animation-delay: .1s; }
+  .wbar:nth-child(3)  { animation-delay: .2s; }
+  .wbar:nth-child(4)  { animation-delay: .3s; }
+  .wbar:nth-child(5)  { animation-delay: .4s; }
+  .wbar:nth-child(6)  { animation-delay: .5s; }
+  .wbar:nth-child(7)  { animation-delay: .4s; }
+  .wbar:nth-child(8)  { animation-delay: .3s; }
+  .wbar:nth-child(9)  { animation-delay: .2s; }
+  .wbar:nth-child(10) { animation-delay: .1s; }
+  .wbar:nth-child(11) { animation-delay: .0s; }
+  .wbar:nth-child(12) { animation-delay: .1s; }
+  .wbar:nth-child(13) { animation-delay: .2s; }
+  .wbar:nth-child(14) { animation-delay: .3s; }
+  .wbar:nth-child(15) { animation-delay: .4s; }
+  .wbar:nth-child(16) { animation-delay: .5s; }
+  .wbar:nth-child(17) { animation-delay: .4s; }
+  .wbar:nth-child(18) { animation-delay: .3s; }
+  .wbar:nth-child(19) { animation-delay: .2s; }
+  .wbar:nth-child(20) { animation-delay: .1s; }
+
+  /* VINYL SPIN */
+  @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+  .vinyl-spin { animation: spin 8s linear infinite; transform-origin: center; }
+
+  /* FLOAT */
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-8px); }
+  }
+  .float { animation: float 3s ease-in-out infinite; }
+
+  /* PULSE */
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+  }
+
+  /* SECTION DIVIDER WAVE */
+  .wave-divider { width: 100%; overflow: hidden; line-height: 0; }
+  .wave-divider svg { display: block; }
+
+  @media (max-width: 600px) {
+    .conc-grid { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .hero-title { font-size: 4.5rem; }
+    .display { font-size: 2.8rem; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<!-- ══════════════════════════════════════════
+     HERO
+══════════════════════════════════════════ -->
+<div class="hero">
+  <p class="hero-tag">MBA em Inteligência de Dados & Analytics · Mackenzie · 2026</p>
+  <h1 class="hero-title">A Corrida pelo<br><span>Algoritmo</span></h1>
+  <p class="hero-subtitle">No Spotify, não basta fazer música boa. Você precisa entender como a plataforma funciona.</p>
+  
+  <!-- Waveform animation under hero title -->
+  <div class="illus" style="margin: 0 0 2rem;">
+    <svg width="320" height="60" viewBox="0 0 320 60" xmlns="http://www.w3.org/2000/svg">
+      <g fill="#1DB954" opacity="0.85">
+        <rect class="wbar" x="0"   y="20" width="12" height="40" rx="6"/>
+        <rect class="wbar" x="16"  y="10" width="12" height="50" rx="6"/>
+        <rect class="wbar" x="32"  y="5"  width="12" height="55" rx="6"/>
+        <rect class="wbar" x="48"  y="15" width="12" height="45" rx="6"/>
+        <rect class="wbar" x="64"  y="0"  width="12" height="60" rx="6"/>
+        <rect class="wbar" x="80"  y="10" width="12" height="50" rx="6"/>
+        <rect class="wbar" x="96"  y="20" width="12" height="40" rx="6"/>
+        <rect class="wbar" x="112" y="5"  width="12" height="55" rx="6"/>
+        <rect class="wbar" x="128" y="15" width="12" height="45" rx="6"/>
+        <rect class="wbar" x="144" y="0"  width="12" height="60" rx="6"/>
+        <rect class="wbar" x="160" y="10" width="12" height="50" rx="6"/>
+        <rect class="wbar" x="176" y="20" width="12" height="40" rx="6"/>
+        <rect class="wbar" x="192" y="5"  width="12" height="55" rx="6"/>
+        <rect class="wbar" x="208" y="15" width="12" height="45" rx="6"/>
+        <rect class="wbar" x="224" y="0"  width="12" height="60" rx="6"/>
+        <rect class="wbar" x="240" y="10" width="12" height="50" rx="6"/>
+        <rect class="wbar" x="256" y="20" width="12" height="40" rx="6"/>
+        <rect class="wbar" x="272" y="5"  width="12" height="55" rx="6"/>
+        <rect class="wbar" x="288" y="15" width="12" height="45" rx="6"/>
+        <rect class="wbar" x="304" y="0"  width="12" height="60" rx="6"/>
+      </g>
+    </svg>
+  </div>
+
+<div class="hero-line"></div>
+  <div class="hero-scroll">role para descobrir</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     INTRO
+══════════════════════════════════════════ -->
+<section>
+  <p class="lead">Em 2025, o Spotify pagou <strong>$11 bilhões</strong> à indústria musical — o maior pagamento anual a criadores de qualquer varejista na história. Uma cifra impossível de ignorar.</p>
+  <p class="lead">Mas essa grandiosidade esconde uma tensão fundamental: entre a <em>escala da plataforma</em> e a <em>realidade da maioria dos artistas</em>.</p>
+  <div class="pullquote">
+    Um artista iniciante com 500 streams por mês ganha $24 por ano. Isso é menos do que uma assinatura mensal do próprio Spotify Premium.
+  </div>
+  <p class="lead">Este trabalho mapeia as regras do jogo — as variáveis que determinam quem captura valor na plataforma e quem fica de fora.</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     SEÇÃO 1 — A ARENA
+══════════════════════════════════════════ -->
+<section>
+  <div class="chapter">
+    <span class="chapter-num">01</span>
+    <span class="chapter-label">A Arena</span>
+  </div>
+  <h2 class="display">750M ouvintes.<br><span>13M artistas.</span><br>Um algoritmo.</h2>
+  <p class="lead">Antes de entender quem ganha, é preciso entender o tamanho do jogo. O Spotify encerrou 2025 em seus maiores índices históricos em todas as dimensões.</p>
+
+
+  <div class="illus" style="margin: 3rem 0 1rem; position:relative;">
+    <svg width="260" height="260" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+      <!-- Floating notes (outside spin group, independent float animation) -->
+      <text x="18" y="60" font-size="28" fill="#1DB954" opacity="0.7" style="animation:float 2.8s ease-in-out infinite">♪</text>
+      <text x="210" y="45" font-size="22" fill="#1DB954" opacity="0.55" style="animation:float 3.5s ease-in-out infinite; animation-delay:.4s">♫</text>
+      <text x="225" y="120" font-size="18" fill="#9B59B6" opacity="0.5" style="animation:float 3.2s ease-in-out infinite; animation-delay:.8s">♩</text>
+      <text x="10" y="150" font-size="16" fill="#9B59B6" opacity="0.4" style="animation:float 4s ease-in-out infinite; animation-delay:.2s">♬</text>
+      <text x="195" y="185" font-size="14" fill="#1DB954" opacity="0.4" style="animation:float 3.8s ease-in-out infinite; animation-delay:1s">♪</text>
+      <text x="30" y="205" font-size="20" fill="#1DB954" opacity="0.35" style="animation:float 3s ease-in-out infinite; animation-delay:.6s">♫</text>
+      <!-- Spinning vinyl group -->
+      <g class="vinyl-spin" style="transform-origin:130px 130px">
+        <!-- Outer disc -->
+        <circle cx="130" cy="130" r="95" fill="#111" stroke="#1DB954" stroke-width="1.5" opacity="0.9"/>
+        <!-- Groove rings -->
+        <circle cx="130" cy="130" r="88" fill="none" stroke="#1DB954" stroke-width="0.5" opacity="0.12"/>
+        <circle cx="130" cy="130" r="80" fill="none" stroke="#1DB954" stroke-width="0.5" opacity="0.12"/>
+        <circle cx="130" cy="130" r="72" fill="none" stroke="#1DB954" stroke-width="0.5" opacity="0.14"/>
+        <circle cx="130" cy="130" r="64" fill="none" stroke="#1DB954" stroke-width="0.5" opacity="0.16"/>
+        <circle cx="130" cy="130" r="56" fill="none" stroke="#1DB954" stroke-width="0.5" opacity="0.18"/>
+        <circle cx="130" cy="130" r="48" fill="none" stroke="#1DB954" stroke-width="0.5" opacity="0.2"/>
+        <!-- Label area — clean, no text -->
+        <circle cx="130" cy="130" r="36" fill="#1DB954" opacity="0.95"/>
+        <circle cx="130" cy="130" r="30" fill="#191414"/>
+        <!-- Spotify icon (3 arcs) instead of text -->
+        <circle cx="130" cy="122" r="6" fill="#1DB954"/>
+        <path d="M 123 130 Q 130 126 137 130" fill="none" stroke="#1DB954" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M 121 136 Q 130 131 139 136" fill="none" stroke="#1DB954" stroke-width="2" stroke-linecap="round"/>
+        <!-- Center hole -->
+        <circle cx="130" cy="130" r="4" fill="#0e0e0e"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi verde">
+      <div class="kpi-value">750M</div>
+      <div class="kpi-label">Usuários Ativos</div>
+      <div class="kpi-sub">MAU Global — Q4 2025</div>
+    </div>
+    <div class="kpi lilas">
+      <div class="kpi-value">272M</div>
+      <div class="kpi-label">Assinantes Premium</div>
+      <div class="kpi-sub">36,3% da base total</div>
+    </div>
+    <div class="kpi laranja">
+      <div class="kpi-value">13M</div>
+      <div class="kpi-label">Artistas e Criadores</div>
+      <div class="kpi-sub">Competindo pelo mesmo algoritmo</div>
+    </div>
+    <div class="kpi verde">
+      <div class="kpi-value">€4.5B</div>
+      <div class="kpi-label">Receita Trimestral</div>
+      <div class="kpi-sub">Q4 2025</div>
+    </div>
+    <div class="kpi lilas">
+      <div class="kpi-value">33.1%</div>
+      <div class="kpi-label">Margem Bruta</div>
+      <div class="kpi-sub">Recorde histórico</div>
+    </div>
+  </div>
+
+  <div class="callout">13 milhões de artistas disputando atenção no mesmo ecossistema algorítmico</div>
+
+  <p class="lead">A margem bruta de 33,1% representa um salto de <strong>+8,4 pontos percentuais</strong> em quatro anos. A plataforma nunca esteve tão saudável financeiramente. A pergunta natural é: esse crescimento chega a quem cria?</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     SEÇÃO 2 — O CRESCIMENTO
+══════════════════════════════════════════ -->
+<section class="wide">
+  <div class="chapter">
+    <span class="chapter-num">02</span>
+    <span class="chapter-label">O Crescimento Financeiro</span>
+  </div>
+  <h2 class="display">Receita <span>+67%</span><br>em 4 anos.</h2>
+  <p class="lead" style="max-width:600px">A série histórica de Q4 2021 a Q4 2025 conta a história de uma empresa que encontrou seu modelo definitivo — e o ponto de inflexão está em 2023.</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:2.5rem 0;">
+    <div class="chart-wrap" style="margin:0">
+      <p class="chart-title">Receita Total (€M)</p>
+      <div style="position:relative;height:280px">
+        <canvas id="chartReceita" role="img" aria-label="Evolução da receita do Spotify de 2687M euros em 2021 para 4500M em 2025">Receita: 2687, 3167, 3672, 4240, 4500</canvas>
+      </div>
+      <p class="chart-source">Fonte: Spotify Shareholder Letters Q4 2021–Q4 2025</p>
+    </div>
+    <div class="chart-wrap" style="margin:0">
+      <p class="chart-title">Margem Bruta (%)</p>
+      <div style="position:relative;height:280px">
+        <canvas id="chartMargem" role="img" aria-label="Evolução da margem bruta do Spotify de 26.5% em 2021 para 33.1% em 2025">Margem: 26.5%, 24.7%, 26.7%, 31.8%, 33.1%</canvas>
+      </div>
+      <p class="chart-source">Fonte: Spotify Shareholder Letters Q4 2021–Q4 2025</p>
+    </div>
+  </div>
+
+  <div class="callout">O ponto de virada em 2023→2024: margem saltou +5,1pp em um único ano</div>
+
+  <div class="highlight warn">
+    <p><strong>A tensão central:</strong> enquanto a plataforma acumula margem histórica, a estrutura de pagamento por stream mantém a remuneração da maioria dos artistas em níveis irrisórios. Crescimento financeiro e prosperidade dos criadores não são sinônimos — ainda.</p>
+  </div>
+</section>
+
+
+
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     SEÇÃO 3 — AS REGRAS
+══════════════════════════════════════════ -->
+<section>
+  <div class="chapter">
+    <span class="chapter-num">03</span>
+    <span class="chapter-label">As Regras do Jogo</span>
+  </div>
+  <h2 class="display">O sistema<br>tem <span>regras.</span><br>Identificáveis.</h2>
+  <p class="lead">Analisamos 491 faixas em 10 playlists editoriais do Spotify, 339 artistas coletados via API oficial e os dados financeiros de 5 anos. O que emergiu foi um conjunto de regras claras.</p>
+
+
+  <div class="illus" style="margin: 2rem 0;">
+    <svg width="280" height="140" viewBox="0 0 280 140" xmlns="http://www.w3.org/2000/svg">
+      <!-- headphone arc -->
+      <path d="M 50 90 Q 50 20 140 20 Q 230 20 230 90" fill="none" stroke="#1DB954" stroke-width="6" stroke-linecap="round"/>
+      <!-- left ear cup -->
+      <rect x="22" y="82" width="38" height="52" rx="12" fill="#1a1a1a" stroke="#1DB954" stroke-width="2"/>
+      <rect x="30" y="90" width="22" height="36" rx="8" fill="#111"/>
+      <!-- right ear cup -->
+      <rect x="220" y="82" width="38" height="52" rx="12" fill="#1a1a1a" stroke="#1DB954" stroke-width="2"/>
+      <rect x="228" y="90" width="22" height="36" rx="8" fill="#111"/>
+      <!-- sound waves left -->
+      <path d="M 10 98 Q 4 108 10 118" fill="none" stroke="#1DB954" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+      <path d="M 4 93 Q -4 108 4 123" fill="none" stroke="#1DB954" stroke-width="1.2" stroke-linecap="round" opacity="0.3"/>
+      <!-- sound waves right -->
+      <path d="M 270 98 Q 276 108 270 118" fill="none" stroke="#1DB954" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+      <path d="M 276 93 Q 284 108 276 123" fill="none" stroke="#1DB954" stroke-width="1.2" stroke-linecap="round" opacity="0.3"/>
+      <!-- floating notes -->
+      <text x="108" y="58" font-size="18" fill="#1DB954" opacity="0.4" class="float">♪</text>
+      <text x="148" y="50" font-size="14" fill="#9B59B6" opacity="0.35" style="animation: float 3.5s ease-in-out infinite;">♫</text>
+      <text x="132" y="72" font-size="10" fill="#1DB954" opacity="0.25" style="animation: float 4s ease-in-out infinite;">♩</text>
+    </svg>
+  </div>
+
+  <div style="margin: 3rem 0;">
+    <div class="rule-card">
+      <div class="rule-num">01</div>
+      <div class="rule-content">
+        <h3>Existir nas playlists editoriais é a porta de entrada</h3>
+        <p>O algoritmo não descobre você organicamente. A curadoria editorial é o primeiro filtro — e quem entra, permanece.</p>
+      </div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-num">02</div>
+      <div class="rule-content">
+        <h3>Concentração é brutal: o algoritmo amplifica quem já está dentro</h3>
+        <p>Um artista domina com 19 aparições — mais que o dobro do segundo colocado. O sistema retroalimenta os já presentes.</p>
+      </div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-num">03</div>
+      <div class="rule-content">
+        <h3>Seu gênero define seu teto antes de você começar</h3>
+        <p>Pop tem score médio 82. Hip-hop tem 16. Essa diferença não é talento — é estrutura de mercado que o algoritmo perpetua.</p>
+      </div>
+    </div>
+    <div class="rule-card">
+      <div class="rule-num">04</div>
+      <div class="rule-content">
+        <h3>Seguidores ajudam — mas com retornos decrescentes</h3>
+        <p>A janela de maior ganho por seguidor está entre 5M e 20M. Acima disso, a popularidade algorítmica estabiliza.</p>
+      </div>
+    </div>
+    <div class="rule-card" style="border-bottom:none">
+      <div class="rule-num">05</div>
+      <div class="rule-content">
+        <h3>50.000 streams/mês é o limiar econômico real</h3>
+        <p>Abaixo disso, a renda anual não ultrapassa $2.400 — insuficiente para sustentar uma carreira musical profissional.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     SEÇÃO 4 — PLAYLISTS
+══════════════════════════════════════════ -->
+<section class="wide">
+  <div class="chapter">
+    <span class="chapter-num">04</span>
+    <span class="chapter-label">Regra #1 — Playlists</span>
+  </div>
+  <h2 class="display">A porta de<br>entrada <span>existe.</span><br>Está trancada.</h2>
+  <p class="lead" style="max-width:600px">Cada playlist editorial tem ~50 vagas. Com 13 milhões de artistas na plataforma, cada vaga representa uma em 260.000 chances de ser curado pela própria Spotify.</p>
+
+
+
+
+  <div class="chart-wrap">
+    <p class="chart-title">Faixas coletadas por Playlist Editorial · 10 playlists analisadas</p>
+    <div style="position:relative;height:380px">
+      <canvas id="chartPlaylists" role="img" aria-label="Gráfico de barras horizontais mostrando número de faixas por playlist editorial do Spotify">491 faixas em 10 playlists editoriais</canvas>
+    </div>
+    <p class="chart-source">Fonte: Spotify Web API, março/2026 · 491 faixas coletadas</p>
+  </div>
+
+  <div class="callout">491 faixas analisadas · 10 playlists editoriais · cada vaga vale milhões de streams potenciais</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     SEÇÃO 5 — TOP ARTISTAS
+══════════════════════════════════════════ -->
+<section class="wide">
+  <div class="chapter">
+    <span class="chapter-num">05</span>
+    <span class="chapter-label">Regra #2 — Concentração</span>
+  </div>
+  <h2 class="display">1 artista.<br><span>19 aparições.</span><br>O dobro do segundo.</h2>
+
+  <div class="chart-wrap">
+    <p class="chart-title">Top 15 artistas por aparições nas playlists editoriais</p>
+    <div style="position:relative;height:520px">
+      <canvas id="chartArtistas" role="img" aria-label="Ranking dos 15 artistas com mais faixas nas playlists editoriais do Spotify">LoFi Brazil Beach 19, Stan Getz 9, Antônio Carlos Jobim 8...</canvas>
+    </div>
+    <p class="chart-source">Fonte: Spotify Web API, março/2026</p>
+  </div>
+
+  <p class="lead" style="max-width:600px">Artistas brasileiros dominam o top 15 — <strong>LoFi Brazil Beach, Anitta, LUDMILLA, Racionais MC's, Cleber & Cauan, Turma do Pagode</strong>. Sinal claro do peso do mercado local nas playlists editoriais.</p>
+
+  <div class="callout lilas">LoFi Brazil Beach: 19 aparições · estratégia de volume com gênero ambiente · maior que qualquer artista mainstream na amostra</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     SEÇÃO 6 — POPULARIDADE POR GÊNERO
+══════════════════════════════════════════ -->
+<section class="wide">
+  <div class="chapter">
+    <span class="chapter-num">06</span>
+    <span class="chapter-label">Regra #3 — Gênero</span>
+  </div>
+  <h2 class="display">Pop: <span>82.</span><br>Hip-hop: <span class="warn">16.</span><br>Mesma plataforma.</h2>
+  <p class="lead" style="max-width:600px">O score de popularidade não mede apenas qualidade — ele reflete a estrutura de mercado que o algoritmo perpetua. Gêneros com score baixo têm menor probabilidade de curadoria editorial.</p>
+
+  <div class="chart-wrap">
+    <p class="chart-title">Score médio de popularidade por gênero (0–100) · 339 artistas</p>
+    <div style="position:relative;height:300px">
+      <canvas id="chartGeneros" role="img" aria-label="Gráfico de barras mostrando score médio de popularidade por gênero musical">Pop 82, Latin 78.4, Rock 76.4, R&B 75.6, Electronic 69, Jazz 63.5</canvas>
+    </div>
+    <p class="chart-source">Fonte: Spotify Web API, março/2026 · excluídos hip-hop e k-pop (outliers por amostragem de nicho)</p>
+  </div>
+
+  <div class="pullquote">
+    Pop, Latin e R&B concentram os scores mais altos. Não é coincidência — são exatamente os gêneros com maior presença nas playlists editoriais analisadas.
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     SEÇÃO 7 — SCATTER
+══════════════════════════════════════════ -->
+<section class="wide">
+  <div class="chapter">
+    <span class="chapter-num">07</span>
+    <span class="chapter-label">Regra #4 — Seguidores</span>
+  </div>
+  <h2 class="display">Mais seguidores<br>ajudam. <span>Até</span><br><span>20 milhões.</span></h2>
+  <p class="lead" style="max-width:600px">A correlação entre seguidores e popularidade é positiva — mas com retornos decrescentes evidentes. A zona de maior eficiência está entre 5M e 20M de seguidores.</p>
+
+  <div class="chart-wrap">
+    <p class="chart-title">Popularidade vs. Seguidores médios por gênero</p>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:#1DB954"></span>Pop</span>
+      <span><span class="legend-dot" style="background:#9B59B6"></span>Latin</span>
+      <span><span class="legend-dot" style="background:#E67E22"></span>Rock</span>
+      <span><span class="legend-dot" style="background:#E74C3C"></span>R&B</span>
+      <span><span class="legend-dot" style="background:#3498DB"></span>Electronic</span>
+      <span><span class="legend-dot" style="background:#F39C12"></span>Jazz</span>
+    </div>
+    <div style="position:relative;height:320px">
+      <canvas id="chartScatter" role="img" aria-label="Scatter plot mostrando correlação entre seguidores médios e popularidade por gênero">Pop: 34.9M seguidores, popularidade 82. Latin: 14.3M, 78.4. Rock: 14.4M, 76.4.</canvas>
+    </div>
+    <p class="chart-source">Médias por gênero · 339 artistas · Spotify Web API, março/2026 · Eixo X: seguidores médios (M) · Eixo Y: score de popularidade</p>
+  </div>
+
+  <div class="callout">Taylor Swift: 100M seguidores · score 98 · único ponto genuinamente fora da curva</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     SEÇÃO 8 — REMUNERAÇÃO
+══════════════════════════════════════════ -->
+<section class="wide">
+  <div class="chapter">
+    <span class="chapter-num">08</span>
+    <span class="chapter-label">A Verdade Incômoda</span>
+  </div>
+  <h2 class="display">$11 bilhões<br>pagos. <span class="warn">$24</span><br>chegam ao iniciante.</h2>
+  <p class="lead" style="max-width:600px">O Spotify pagou mais de $11 bilhões à indústria em 2025. O número impõe respeito — até você ver como esse dinheiro se distribui.</p>
+
+
+  <div class="illus" style="margin: 2rem 0; gap: 3rem; align-items: flex-end; display: flex; justify-content: center;">
+    <!-- Artista independente (taller) -->
+    <div style="text-align:center; display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+      <svg width="80" height="100" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- Body -->
+        <circle cx="40" cy="22" r="14" fill="#1DB954" opacity="0.9"/>
+        <!-- Face smile -->
+        <path d="M 34 24 Q 40 30 46 24" fill="none" stroke="#0e0e0e" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="36" cy="20" r="1.5" fill="#0e0e0e"/>
+        <circle cx="44" cy="20" r="1.5" fill="#0e0e0e"/>
+        <!-- Torso -->
+        <rect x="26" y="38" width="28" height="32" rx="6" fill="#1DB954" opacity="0.7"/>
+        <!-- Legs -->
+        <rect x="26" y="66" width="11" height="28" rx="5" fill="#1DB954" opacity="0.5"/>
+        <rect x="43" y="66" width="11" height="28" rx="5" fill="#1DB954" opacity="0.5"/>
+        <!-- Guitar -->
+        <ellipse cx="62" cy="58" rx="8" ry="10" fill="#17a349" opacity="0.8"/>
+        <circle cx="62" cy="53" rx="3" ry="3.5" fill="#17a349" opacity="0.9"/>
+        <rect x="61" y="35" width="2" height="22" rx="1" fill="#17a349" opacity="0.8"/>
+        <!-- Money sign -->
+        <text x="3" y="30" font-size="16" fill="#1DB954">$</text>
+        <text x="55" y="18" font-size="12" fill="#1DB954" opacity="0.7">$</text>
+      </svg>
+      <span style="font-size:0.7rem;color:#888;font-family:Arial">Independente</span>
+      <span style="font-size:0.85rem;color:#1DB954;font-weight:500;font-family:Arial">$0,004/stream</span>
+    </div>
+    <!-- VS -->
+    <div style="font-family:'Arial Black',sans-serif;font-size:1.5rem;color:#2a2a2a;padding-bottom:2.5rem">VS</div>
+    <!-- Via gravadora (shorter, sad) -->
+    <div style="text-align:center; display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+      <svg width="80" height="100" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- Body -->
+        <circle cx="40" cy="22" r="14" fill="#9B59B6" opacity="0.7"/>
+        <!-- Face sad -->
+        <path d="M 34 27 Q 40 22 46 27" fill="none" stroke="#0e0e0e" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="36" cy="20" r="1.5" fill="#0e0e0e"/>
+        <circle cx="44" cy="20" r="1.5" fill="#0e0e0e"/>
+        <!-- Torso with suit -->
+        <rect x="26" y="38" width="28" height="32" rx="6" fill="#9B59B6" opacity="0.5"/>
+        <!-- Tie -->
+        <polygon points="40,42 43,52 40,56 37,52" fill="#2a2a2a"/>
+        <!-- Legs -->
+        <rect x="26" y="66" width="11" height="28" rx="5" fill="#9B59B6" opacity="0.4"/>
+        <rect x="43" y="66" width="11" height="28" rx="5" fill="#9B59B6" opacity="0.4"/>
+        <!-- Contract paper -->
+        <rect x="52" y="42" width="20" height="26" rx="2" fill="#1a1a1a" stroke="#555" stroke-width="1"/>
+        <line x1="55" y1="49" x2="69" y2="49" stroke="#555" stroke-width="1"/>
+        <line x1="55" y1="54" x2="69" y2="54" stroke="#555" stroke-width="1"/>
+        <line x1="55" y1="59" x2="63" y2="59" stroke="#555" stroke-width="1"/>
+        <text x="56" y="68" font-size="9" fill="#E67E22">sign</text>
+      </svg>
+      <span style="font-size:0.7rem;color:#888;font-family:Arial">Via Gravadora</span>
+      <span style="font-size:0.85rem;color:#9B59B6;font-weight:500;font-family:Arial">$0,003/stream</span>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <p class="chart-title">Simulação de remuneração anual em USD por volume de streams</p>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:#1DB954"></span>Artista Independente (~$0,004/stream)</span>
+      <span><span class="legend-dot" style="background:#9B59B6"></span>Via Grande Gravadora (~$0,003/stream)</span>
+    </div>
+    <div style="position:relative;height:360px">
+      <canvas id="chartRemuneracao" role="img" aria-label="Gráfico de barras mostrando simulação de remuneração por número de streams mensais">Iniciante 500/mês: $24/ano independente, $18 via gravadora. Grande artista 5M/mês: $240k independente.</canvas>
+    </div>
+    <p class="chart-source">Fonte: Loud & Clear 2024 + Spotify Shareholder Letter Q4 2025 · escala logarítmica · $0,004/stream independente vs $0,003/stream via gravadora</p>
+  </div>
+
+  <div class="callout warn">Limiar de monetização: 1.000 streams/ano = $4 — abaixo disso, zero repasse ao artista</div>
+
+  <div class="highlight warn">
+    <p><strong>O limiar que muda tudo:</strong> 50.000 streams/mês equivale a ~1.667 ouvintes escutando sua música todos os dias. Atingindo essa marca, a renda anual supera $2.400 — ainda modesta, mas economicamente relevante.</p>
+  </div>
+
+  <p class="lead">Artistas independentes capturam <strong>$0,004 por stream</strong> contra $0,003 via grandes gravadoras. A desintermediação <em>compensa financeiramente</em> — para quem atingiu escala suficiente.</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     SEÇÃO 9 — GEOGRAFIA
+══════════════════════════════════════════ -->
+<section class="wide">
+  <div class="chapter">
+    <span class="chapter-num">09</span>
+    <span class="chapter-label">O Maior Mercado</span>
+  </div>
+  <h2 class="display">37% dos<br>ouvintes são<br><span>latinos.</span></h2>
+  <p class="lead" style="max-width:600px">A América Latina concentra mais usuários do Spotify do que Europa e América do Norte juntas. E isso não é uma tendência nova — é uma mudança estrutural em andamento há quatro anos.</p>
+
+
+
+
+  <div class="chart-wrap">
+    <p class="chart-title">Evolução da distribuição geográfica de usuários · Q4 2021–Q4 2025</p>
+    <div class="legend">
+      <span><span class="legend-dot" style="background:#1DB954"></span>Latin America</span>
+      <span><span class="legend-dot" style="background:#9B59B6"></span>Rest of World</span>
+      <span><span class="legend-dot" style="background:#E67E22"></span>North America</span>
+      <span><span class="legend-dot" style="background:#888"></span>Europe</span>
+    </div>
+    <div style="position:relative;height:320px">
+      <canvas id="chartGeo" role="img" aria-label="Gráfico de linhas mostrando evolução da participação geográfica no MAU do Spotify de 2021 a 2025">Latin America cresce de 22% para 37%. Europe cai de 23% para 16%.</canvas>
+    </div>
+    <p class="chart-source">Fonte: Spotify Shareholder Letters Q4 2021–Q4 2025</p>
+  </div>
+
+  <div class="callout">América Latina: +15pp em 4 anos · a curva mais íngreme do gráfico · tendência irreversível</div>
+
+  <p class="lead">Europa cedeu <strong>-7 pontos percentuais</strong> no mesmo período. O centro de gravidade do streaming está migrando para o Sul Global — e quem produz conteúdo para esse mercado agora está construindo vantagem de primeiro movimento.</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     CONCLUSÃO
+══════════════════════════════════════════ -->
+<section>
+  <div class="chapter">
+    <span class="chapter-num">10</span>
+    <span class="chapter-label">O Perfil Vencedor</span>
+  </div>
+  <h2 class="display">Não é sorte.<br>É uma <span>equação</span><br>com variáveis.</h2>
+  <p class="lead">Após mapear as regras do sistema, o perfil do artista que vence a corrida pelo algoritmo fica claro. Não é um perfil único — é uma combinação de variáveis identificáveis e, em parte, controláveis.</p>
+
+
+  <div class="illus" style="margin: 1rem 0 2rem;">
+    <svg width="200" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" class="float">
+      <!-- Cup body -->
+      <path d="M 48 20 L 112 20 L 105 80 Q 102 100 80 105 Q 58 100 55 80 Z" fill="#1DB954" opacity="0.9"/>
+      <!-- Cup shine -->
+      <path d="M 58 28 L 68 28 L 64 68 L 56 68 Z" fill="white" opacity="0.15" rx="2"/>
+      <!-- Handles -->
+      <path d="M 48 30 Q 30 30 30 50 Q 30 70 48 70" fill="none" stroke="#1DB954" stroke-width="8" stroke-linecap="round"/>
+      <path d="M 112 30 Q 130 30 130 50 Q 130 70 112 70" fill="none" stroke="#1DB954" stroke-width="8" stroke-linecap="round"/>
+      <!-- Base stem -->
+      <rect x="68" y="105" width="24" height="12" rx="2" fill="#17a349" opacity="0.8"/>
+      <!-- Base plate -->
+      <rect x="50" y="117" width="60" height="12" rx="6" fill="#17a349" opacity="0.7"/>
+      <!-- Stars -->
+      <text x="72" y="58" font-size="22" text-anchor="middle" fill="#0e0e0e" opacity="0.3">★</text>
+      <!-- Floating musical notes — bigger and more visible -->
+      <text x="18" y="42" font-size="26" fill="#1DB954" opacity="0.85" style="animation:float 3s ease-in-out infinite">♪</text>
+      <text x="118" y="38" font-size="22" fill="#9B59B6" opacity="0.8" style="animation:float 3.5s ease-in-out infinite; animation-delay:.5s">♫</text>
+      <text x="138" y="72" font-size="18" fill="#1DB954" opacity="0.65" style="animation:float 4s ease-in-out infinite">♩</text>
+      <text x="5" y="90" font-size="16" fill="#E67E22" opacity="0.6" style="animation:float 2.8s ease-in-out infinite; animation-delay:.3s">♬</text>
+      <text x="128" y="95" font-size="20" fill="#1DB954" opacity="0.7" style="animation:float 3.2s ease-in-out infinite; animation-delay:.7s">♪</text>
+    </svg>
+  </div>
+
+  <div class="conc-grid">
+    <div class="conc-card">
+      <div class="conc-icon">🎵</div>
+      <div class="conc-tag">Regra #1 — Gênero</div>
+      <div class="conc-title">Pop, Latin ou R&B como base</div>
+      <div class="conc-body">Os três gêneros com score médio acima de 75 e maior presença nas playlists editoriais. O algoritmo já os favorece estruturalmente.</div>
+    </div>
+    <div class="conc-card lilas">
+      <div class="conc-icon">📊</div>
+      <div class="conc-tag">Regra #2 — Volume</div>
+      <div class="conc-title">50.000 streams/mês como meta mínima</div>
+      <div class="conc-body">O limiar econômico real. Abaixo disso, a renda é insuficiente. Acima, o sistema começa a trabalhar a favor do artista.</div>
+    </div>
+    <div class="conc-card laranja">
+      <div class="conc-icon">🎤</div>
+      <div class="conc-tag">Regra #3 — Independência</div>
+      <div class="conc-title">Distribuição direta quando há escala</div>
+      <div class="conc-body">$0,004 vs $0,003 por stream — diferença de 33% na receita. A desintermediação compensa para quem atingiu volume suficiente.</div>
+    </div>
+    <div class="conc-card">
+      <div class="conc-icon">🌎</div>
+      <div class="conc-tag">Regra #4 — Mercado</div>
+      <div class="conc-title">Audiência latina como vantagem competitiva</div>
+      <div class="conc-body">37% do MAU global e crescendo +15pp em 4 anos. Um artista latino independente com escala está na posição estratégica ideal.</div>
+    </div>
+  </div>
+
+  <div class="pullquote">
+    Spotify pagou $11 bilhões à indústria em 2025. A questão nunca foi se há dinheiro na plataforma — é saber como o algoritmo distribui esse dinheiro, e posicionar-se de acordo.
+    <cite>Conclusão — A Corrida pelo Algoritmo</cite>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<footer>
+  <p><strong>Fontes de dados:</strong><br>
+  Spotify Shareholder Letters Q4 2021–Q4 2025 · investors.spotify.com<br>
+  Spotify Web API · Coleta via Python + Spotipy · março/2026<br>
+  Loud & Clear 2024 · loudandclear.spotify.com<br>
+  Newsroom Spotify · newsroom.spotify.com/2026-01-28<br>
+  <br>
+  <strong>Infraestrutura:</strong> Google BigQuery (GCP) · Python + Plotly · pptxgenjs<br>
+  <strong>MBA em Inteligência de Dados & Analytics · Universidade Presbiteriana Mackenzie · 2026</strong>
+  </p>
+</footer>
+
+<script>
+// PROGRESS BAR
+window.addEventListener('scroll', () => {
+  const total = document.body.scrollHeight - window.innerHeight;
+  document.getElementById('progress').style.width = (window.scrollY / total * 100) + '%';
+});
+
+const C = {
+  verde: '#1DB954', lilas: '#9B59B6', laranja: '#E67E22',
+  cinza: '#888', branco: '#f5f5f0', linha: '#2a2a2a',
+  azul: '#3498DB', vermelho: '#E74C3C', amarelo: '#F39C12'
+};
+
+const defaultOpts = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a1a', titleColor: '#f5f5f0', bodyColor: '#888', borderColor: '#2a2a2a', borderWidth: 1 } },
+  scales: {
+    x: { grid: { color: '#1e1e1e' }, ticks: { color: C.cinza, font: { family: 'DM Sans', size: 11 } }, border: { color: '#2a2a2a' } },
+    y: { grid: { color: '#1e1e1e' }, ticks: { color: C.cinza, font: { family: 'DM Sans', size: 11 } }, border: { color: '#2a2a2a' } }
+  }
+};
+
+// ── CHART 1a: RECEITA ────────────────────────────────────────────
+{
+  const qts = ["Q4'21","Q4'22","Q4'23","Q4'24","Q4'25"];
+  const ctx = document.getElementById('chartReceita').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: qts,
+      datasets: [{
+        label: 'Receita (€M)',
+        data: [2687, 3167, 3672, 4240, 4500],
+        borderColor: C.verde, backgroundColor: 'rgba(29,185,84,0.08)',
+        borderWidth: 3, pointRadius: 6, pointBackgroundColor: C.verde,
+        fill: true, tension: 0.2
+      }]
+    },
+    options: {
+      ...defaultOpts,
+      plugins: { ...defaultOpts.plugins },
+      scales: {
+        x: { ...defaultOpts.scales.x, ticks: { ...defaultOpts.scales.x.ticks, font: { size: 11 } } },
+        y: { ...defaultOpts.scales.y, min: 2000, max: 5000,
+          ticks: { ...defaultOpts.scales.y.ticks, stepSize: 500, callback: v => '€' + v.toLocaleString() },
+          title: { display: true, text: 'Receita (€M)', color: C.verde, font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+// ── CHART 1b: MARGEM ─────────────────────────────────────────────
+{
+  const qts = ["Q4'21","Q4'22","Q4'23","Q4'24","Q4'25"];
+  const ctx = document.getElementById('chartMargem').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: qts,
+      datasets: [{
+        label: 'Margem Bruta (%)',
+        data: [26.5, 24.7, 26.7, 31.8, 33.1],
+        borderColor: C.lilas, backgroundColor: 'rgba(155,89,182,0.08)',
+        borderWidth: 3, pointRadius: 6, pointBackgroundColor: C.lilas,
+        fill: true, tension: 0.2, borderDash: [5,3]
+      }]
+    },
+    options: {
+      ...defaultOpts,
+      plugins: { ...defaultOpts.plugins },
+      scales: {
+        x: { ...defaultOpts.scales.x, ticks: { ...defaultOpts.scales.x.ticks, font: { size: 11 } } },
+        y: { ...defaultOpts.scales.y, min: 20, max: 40,
+          ticks: { ...defaultOpts.scales.y.ticks, stepSize: 5, callback: v => v + '%' },
+          title: { display: true, text: 'Margem Bruta (%)', color: C.lilas, font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+// ── CHART 2: PLAYLISTS ──────────────────────────────────────────
+{
+  const labels = ['Sertanejo Hits','Pagode Hits','Rap Brasileiro','Funk Hits Brasil','K-Pop Hits','Jazz Classics','Latin Hits','MPB Classics','Top Hits Brasil 2024','Top Pop Global'];
+  const vals = [44, 48, 49, 50, 50, 50, 50, 50, 50, 50];
+  const colors = vals.map(v => v === 50 ? C.verde : (v >= 49 ? 'rgba(29,185,84,0.6)' : 'rgba(29,185,84,0.35)'));
+  const ctx = document.getElementById('chartPlaylists').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      ...defaultOpts,
+      indexAxis: 'y',
+      scales: {
+        x: { ...defaultOpts.scales.x, min: 40, max: 52, ticks: { ...defaultOpts.scales.x.ticks, callback: v => v + ' faixas' } },
+        y: { ...defaultOpts.scales.y, ticks: { ...defaultOpts.scales.y.ticks, font: { size: 10 } } }
+      },
+      plugins: { ...defaultOpts.plugins, datalabels: false }
+    }
+  });
+}
+
+// ── CHART 3: TOP ARTISTAS ────────────────────────────────────────
+{
+  const labels = ['Luan Santana','Exaltasamba','Topic','Dmitri Shostakovich','Racionais MC\'s','LUDMILLA','Anitta','Turma do Pagode','Inst. Music Cafe','Todays Hits Radio','Cleber & Cauan','Antônio Carlos Jobim','Hits do Pagode','Stan Getz','LoFi Brazil Beach'];
+  const vals = [4,4,4,5,5,5,5,6,7,7,8,8,8,9,19];
+  const colors = vals.map((v,i) => i >= 12 ? C.verde : (v >= 7 ? 'rgba(29,185,84,0.55)' : 'rgba(29,185,84,0.25)'));
+  const ctx = document.getElementById('chartArtistas').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      ...defaultOpts,
+      indexAxis: 'y',
+      scales: {
+        x: { ...defaultOpts.scales.x, max: 22, ticks: { ...defaultOpts.scales.x.ticks, callback: v => v + 'x' } },
+        y: { ...defaultOpts.scales.y, ticks: { ...defaultOpts.scales.y.ticks, font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// ── CHART 4: POPULARIDADE POR GÊNERO ────────────────────────────
+{
+  const labels = ['Pop','Latin','Rock','R&B','Electronic','Jazz'];
+  const vals = [82.0, 78.4, 76.4, 75.6, 69.0, 63.5];
+  const colors = vals.map(v => v >= 78 ? C.verde : (v >= 70 ? 'rgba(29,185,84,0.6)' : (v >= 65 ? C.lilas : '#555')));
+  const ctx = document.getElementById('chartGeneros').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 0 }] },
+    options: {
+      ...defaultOpts,
+      scales: {
+        x: defaultOpts.scales.x,
+        y: { ...defaultOpts.scales.y, min: 55, max: 90, ticks: { ...defaultOpts.scales.y.ticks, callback: v => v } }
+      }
+    }
+  });
+}
+
+// ── CHART 5: SCATTER ──────────────────────────────────────────────
+{
+  const data = [
+    { x: 34.9, y: 82.0, label: 'Pop',        color: C.verde },
+    { x: 14.3, y: 78.4, label: 'Latin',       color: C.lilas },
+    { x: 14.4, y: 76.4, label: 'Rock',        color: C.laranja },
+    { x: 13.1, y: 75.6, label: 'R&B',         color: C.vermelho },
+    { x: 10.1, y: 69.0, label: 'Electronic',  color: C.azul },
+    { x:  3.7, y: 63.5, label: 'Jazz',        color: C.amarelo },
+  ];
+  const ctx = document.getElementById('chartScatter').getContext('2d');
+  new Chart(ctx, {
+    type: 'bubble',
+    data: {
+      datasets: data.map(d => ({
+        label: d.label,
+        data: [{ x: d.x, y: d.y, r: d.label === 'Pop' ? 20 : d.label === 'Latin' || d.label === 'Rock' ? 15 : d.label === 'R&B' ? 14 : d.label === 'Electronic' ? 12 : 9 }],
+        backgroundColor: d.color + 'CC',
+        borderColor: d.color,
+        borderWidth: 2
+      }))
+    },
+    options: {
+      ...defaultOpts,
+      plugins: { ...defaultOpts.plugins, legend: { display: false }, tooltip: { ...defaultOpts.plugins.tooltip, callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw.x}M seguidores · popularidade ${ctx.raw.y}` } } },
+      scales: {
+        x: { ...defaultOpts.scales.x, min: 0, max: 42,
+          title: { display: true, text: 'Seguidores médios (M)', color: C.cinza, font: { size: 11 } },
+          ticks: { ...defaultOpts.scales.x.ticks, callback: v => v + 'M', stepSize: 10 }
+        },
+        y: { ...defaultOpts.scales.y, min: 50, max: 92,
+          title: { display: true, text: 'Score de popularidade', color: C.cinza, font: { size: 11 } },
+          ticks: { ...defaultOpts.scales.y.ticks, stepSize: 10, callback: v => v }
+        }
+      },
+      layout: { padding: { top: 20, right: 20, bottom: 10, left: 10 } }
+    }
+  });
+  // Add labels
+  setTimeout(() => {
+    data.forEach(d => {
+      const meta = ctx.canvas.parentElement;
+    });
+  }, 500);
+}
+
+// ── CHART 6: REMUNERAÇÃO ──────────────────────────────────────────
+{
+  const labels = ['Iniciante\n500/mês','Independente\n5k/mês','Em Crescimento\n50k/mês','Consolidado\n500k/mês','Grande\n5M/mês'];
+  const ind  = [24, 240, 2400, 24000, 240000];
+  const grav = [18, 180, 1800, 18000, 180000];
+  const ctx = document.getElementById('chartRemuneracao').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Independente', data: ind,  backgroundColor: C.verde + 'CC', borderColor: C.verde, borderWidth: 1 },
+        { label: 'Gravadora',    data: grav, backgroundColor: C.lilas + 'CC', borderColor: C.lilas, borderWidth: 1 },
+      ]
+    },
+    options: {
+      ...defaultOpts,
+      scales: {
+        x: { ...defaultOpts.scales.x, ticks: { ...defaultOpts.scales.x.ticks, font: { size: 10 } } },
+        y: { ...defaultOpts.scales.y,
+          type: 'logarithmic',
+          min: 1, max: 500000,
+          ticks: {
+            ...defaultOpts.scales.y.ticks,
+            autoSkip: false,
+            callback: function(v) {
+              const labels = { 1:'$1', 10:'$10', 100:'$100', 1000:'$1k', 10000:'$10k', 100000:'$100k', 240000:'$240k' };
+              return labels[v] !== undefined ? labels[v] : '';
+            }
+          }
+        }
+      },
+      plugins: { ...defaultOpts.plugins, legend: { display: false } }
+    }
+  });
+}
+
+// ── CHART 7: GEO EVOLUÇÃO ────────────────────────────────────────
+{
+  const quarters = ["Q4'21","Q4'22","Q4'23","Q4'24","Q4'25"];
+  const ctx = document.getElementById('chartGeo').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: quarters,
+      datasets: [
+        { label: 'Latin America', data: [22,28,28,34,37], borderColor: C.verde, backgroundColor: 'transparent', borderWidth: 2.5, pointRadius: 5, pointBackgroundColor: C.verde, tension: 0.2 },
+        { label: 'Rest of World',  data: [34,30,32,27,26], borderColor: C.lilas, backgroundColor: 'transparent', borderWidth: 2, borderDash:[4,3], pointRadius: 4, pointBackgroundColor: C.lilas, tension: 0.2 },
+        { label: 'North America', data: [21,21,22,22,21], borderColor: C.laranja, backgroundColor: 'transparent', borderWidth: 2, borderDash:[2,4], pointRadius: 4, pointBackgroundColor: C.laranja, tension: 0.2 },
+        { label: 'Europe',        data: [23,21,19,17,16], borderColor: C.cinza, backgroundColor: 'transparent', borderWidth: 1.5, borderDash:[6,4], pointRadius: 4, pointBackgroundColor: C.cinza, tension: 0.2 },
+      ]
+    },
+    options: {
+      ...defaultOpts,
+      scales: {
+        x: defaultOpts.scales.x,
+        y: { ...defaultOpts.scales.y, min: 10, max: 45, ticks: { ...defaultOpts.scales.y.ticks, callback: v => v + '%' } }
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>
